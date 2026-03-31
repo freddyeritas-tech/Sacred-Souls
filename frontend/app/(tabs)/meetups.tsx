@@ -7,68 +7,81 @@ import {
   TouchableOpacity,
   RefreshControl,
   Alert,
+  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { api } from '../../src/services/api';
 import { useAuthStore } from '../../src/store/authStore';
-import { MeetupCard } from '../../src/components/MeetupCard';
+import { GatheringCard } from '../../src/components/GatheringCard';
 import { COLORS } from '../../src/constants/theme';
+
+type GatheringType = 'all' | 'in_person' | 'virtual';
 
 export default function MeetupsScreen() {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
-  const [meetups, setMeetups] = useState<any[]>([]);
+  const [gatherings, setGatherings] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<GatheringType>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const fetchMeetups = useCallback(async () => {
+  const fetchGatherings = useCallback(async () => {
     try {
-      const data = await api.getMeetups();
-      setMeetups(data);
+      const gatheringType = activeTab === 'all' ? undefined : activeTab;
+      const data = await api.getGatherings(undefined, gatheringType);
+      setGatherings(data);
     } catch (error) {
-      console.error('Failed to fetch meetups:', error);
+      console.error('Failed to fetch gatherings:', error);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, []);
+  }, [activeTab]);
 
   useEffect(() => {
-    fetchMeetups();
-  }, [fetchMeetups]);
+    fetchGatherings();
+  }, [fetchGatherings]);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
-    fetchMeetups();
+    fetchGatherings();
   };
 
-  const handleAttend = async (meetupId: string) => {
+  const handleAttend = async (gatheringId: string) => {
     try {
-      const { attending } = await api.attendMeetup(meetupId);
-      setMeetups(meetups.map(meetup => {
-        if (meetup.meetup_id === meetupId) {
+      const { attending } = await api.attendGathering(gatheringId);
+      setGatherings(gatherings.map(g => {
+        if (g.gathering_id === gatheringId) {
           return {
-            ...meetup,
+            ...g,
             is_attending: attending,
             attendees_count: attending 
-              ? meetup.attendees_count + 1 
-              : meetup.attendees_count - 1,
+              ? g.attendees_count + 1 
+              : g.attendees_count - 1,
           };
         }
-        return meetup;
+        return g;
       }));
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to update attendance');
     }
   };
 
-  const handleCreateMeetup = () => {
+  const handleJoinVirtual = (virtualLink?: string) => {
+    if (virtualLink) {
+      Linking.openURL(virtualLink);
+    } else {
+      Alert.alert('Info', 'Virtual meeting link will be shared closer to the event');
+    }
+  };
+
+  const handleCreateGathering = () => {
     if (user?.subscription_status !== 'premium') {
       Alert.alert(
         'Premium Required',
-        'Creating meetups is a premium feature. Upgrade to unlock!',
+        'Creating gatherings is a premium feature. Upgrade to unlock!',
         [
           { text: 'Cancel', style: 'cancel' },
           { text: 'Upgrade', onPress: () => router.push('/subscription') },
@@ -76,29 +89,79 @@ export default function MeetupsScreen() {
       );
       return;
     }
-    router.push('/create-meetup');
+    router.push('/create-gathering');
   };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.title}>Nature Meetups</Text>
-        <TouchableOpacity style={styles.createButton} onPress={handleCreateMeetup}>
+        <Text style={styles.title}>Gatherings</Text>
+        <TouchableOpacity style={styles.createButton} onPress={handleCreateGathering}>
           <Ionicons name="add" size={24} color={COLORS.text} />
         </TouchableOpacity>
       </View>
 
+      <View style={styles.tabs}>
+        <TouchableOpacity 
+          style={[styles.tab, activeTab === 'all' && styles.tabActive]}
+          onPress={() => setActiveTab('all')}
+        >
+          <Text style={[styles.tabText, activeTab === 'all' && styles.tabTextActive]}>
+            All
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.tab, activeTab === 'in_person' && styles.tabActive]}
+          onPress={() => setActiveTab('in_person')}
+        >
+          <Ionicons 
+            name="leaf" 
+            size={16} 
+            color={activeTab === 'in_person' ? COLORS.text : COLORS.textMuted} 
+          />
+          <Text style={[styles.tabText, activeTab === 'in_person' && styles.tabTextActive]}>
+            In Nature
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.tab, activeTab === 'virtual' && styles.tabActive]}
+          onPress={() => setActiveTab('virtual')}
+        >
+          <Ionicons 
+            name="videocam" 
+            size={16} 
+            color={activeTab === 'virtual' ? COLORS.text : COLORS.textMuted} 
+          />
+          <Text style={[styles.tabText, activeTab === 'virtual' && styles.tabTextActive]}>
+            Virtual
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       <View style={styles.banner}>
-        <Ionicons name="leaf" size={24} color={COLORS.nature} />
-        <Text style={styles.bannerText}>Connect with your tribe in nature</Text>
+        <Ionicons 
+          name={activeTab === 'virtual' ? 'videocam' : 'leaf'} 
+          size={24} 
+          color={activeTab === 'virtual' ? COLORS.primary : COLORS.nature} 
+        />
+        <Text style={styles.bannerText}>
+          {activeTab === 'virtual' 
+            ? 'Connect with your tribe online'
+            : 'Connect with your tribe in nature'
+          }
+        </Text>
       </View>
 
       <FlatList
-        data={meetups}
+        data={gatherings}
         renderItem={({ item }) => (
-          <MeetupCard meetup={item} onAttend={() => handleAttend(item.meetup_id)} />
+          <GatheringCard 
+            gathering={item} 
+            onAttend={() => handleAttend(item.gathering_id)}
+            onJoinVirtual={() => handleJoinVirtual(item.virtual_link)}
+          />
         )}
-        keyExtractor={(item) => item.meetup_id}
+        keyExtractor={(item) => item.gathering_id}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
@@ -110,14 +173,21 @@ export default function MeetupsScreen() {
         ListEmptyComponent={
           !isLoading ? (
             <View style={styles.emptyState}>
-              <Ionicons name="calendar" size={64} color={COLORS.nature} />
-              <Text style={styles.emptyTitle}>No meetups yet</Text>
+              <Ionicons 
+                name={activeTab === 'virtual' ? 'videocam' : 'calendar'} 
+                size={64} 
+                color={activeTab === 'virtual' ? COLORS.primary : COLORS.nature} 
+              />
+              <Text style={styles.emptyTitle}>No gatherings yet</Text>
               <Text style={styles.emptyText}>
-                Create a meetup to gather with your spiritual community in nature
+                {activeTab === 'virtual'
+                  ? 'Create a virtual gathering to connect online'
+                  : 'Create a gathering to meet in nature'
+                }
               </Text>
               {user?.subscription_status === 'premium' && (
-                <TouchableOpacity style={styles.createMeetupButton} onPress={handleCreateMeetup}>
-                  <Text style={styles.createMeetupText}>Create Meetup</Text>
+                <TouchableOpacity style={styles.createGatheringButton} onPress={handleCreateGathering}>
+                  <Text style={styles.createGatheringText}>Create Gathering</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -152,6 +222,34 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.nature,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  tabs: {
+    flexDirection: 'row',
+    marginHorizontal: 16,
+    marginBottom: 16,
+    backgroundColor: COLORS.card,
+    borderRadius: 12,
+    padding: 4,
+  },
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 10,
+    gap: 6,
+  },
+  tabActive: {
+    backgroundColor: COLORS.primary,
+  },
+  tabText: {
+    color: COLORS.textMuted,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  tabTextActive: {
+    color: COLORS.text,
   },
   banner: {
     flexDirection: 'row',
@@ -191,13 +289,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 24,
   },
-  createMeetupButton: {
+  createGatheringButton: {
     backgroundColor: COLORS.nature,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 24,
   },
-  createMeetupText: {
+  createGatheringText: {
     color: COLORS.text,
     fontSize: 16,
     fontWeight: '600',

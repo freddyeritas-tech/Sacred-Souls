@@ -7,33 +7,41 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { api } from '../src/services/api';
 import { useAuthStore } from '../src/store/authStore';
 import { COLORS } from '../src/constants/theme';
 
 const PREMIUM_FEATURES = [
   { icon: 'people', title: 'Create Circles', description: 'Build your own spiritual communities' },
-  { icon: 'calendar', title: 'Host Meetups', description: 'Organize nature gatherings' },
-  { icon: 'chatbubbles', title: 'Group Chat', description: 'Connect within your circles' },
+  { icon: 'calendar', title: 'Host Gatherings', description: 'Organize nature & virtual events' },
+  { icon: 'chatbubbles', title: 'Group Chat', description: 'Real-time messaging in circles' },
+  { icon: 'videocam', title: 'Virtual Meetings', description: 'Host online spiritual sessions' },
   { icon: 'eye-off', title: 'Ad-Free', description: 'Distraction-free experience' },
-  { icon: 'star', title: 'Premium Badge', description: 'Stand out in the community' },
   { icon: 'infinite', title: 'Unlimited Access', description: 'All features unlocked' },
 ];
 
 export default function SubscriptionScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const updateUser = useAuthStore((state) => state.updateUser);
   const [subscription, setSubscription] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpgrading, setIsUpgrading] = useState(false);
+  const [isCheckingPayment, setIsCheckingPayment] = useState(false);
 
   useEffect(() => {
     fetchSubscription();
-  }, []);
+    
+    // Check for returning from Stripe
+    if (params.session_id && params.status === 'success') {
+      checkPaymentStatus(params.session_id as string);
+    }
+  }, [params]);
 
   const fetchSubscription = async () => {
     try {
@@ -46,30 +54,66 @@ export default function SubscriptionScreen() {
     }
   };
 
+  const checkPaymentStatus = async (sessionId: string) => {
+    setIsCheckingPayment(true);
+    try {
+      // Poll payment status
+      for (let i = 0; i < 5; i++) {
+        const status = await api.getPaymentStatus(sessionId);
+        if (status.payment_status === 'paid') {
+          updateUser({ subscription_status: 'premium' });
+          Alert.alert('Success!', 'Welcome to Sacred Souls Premium!');
+          fetchSubscription();
+          break;
+        }
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    } catch (error) {
+      console.error('Error checking payment:', error);
+    } finally {
+      setIsCheckingPayment(false);
+    }
+  };
+
   const handleUpgrade = async () => {
-    Alert.alert(
-      'Upgrade to Premium',
-      'This will activate your premium subscription for €10/month. (Demo - no actual payment)',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Upgrade',
-          onPress: async () => {
-            setIsUpgrading(true);
-            try {
-              await api.upgradeSubscription();
-              updateUser({ subscription_status: 'premium' });
-              Alert.alert('Success!', 'Welcome to Sacred Souls Premium!');
-              fetchSubscription();
-            } catch (error: any) {
-              Alert.alert('Error', error.message || 'Failed to upgrade');
-            } finally {
-              setIsUpgrading(false);
-            }
+    setIsUpgrading(true);
+    try {
+      // Get current origin URL
+      const originUrl = typeof window !== 'undefined' 
+        ? window.location.origin 
+        : 'https://sacred-souls-1.preview.emergentagent.com';
+      
+      const { checkout_url } = await api.createCheckoutSession(originUrl);
+      
+      // Open Stripe checkout
+      if (checkout_url) {
+        await Linking.openURL(checkout_url);
+      }
+    } catch (error: any) {
+      // Fallback to demo upgrade
+      Alert.alert(
+        'Payment System',
+        'Stripe checkout is being set up. Would you like to use demo mode instead?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Demo Upgrade',
+            onPress: async () => {
+              try {
+                await api.upgradeSubscription();
+                updateUser({ subscription_status: 'premium' });
+                Alert.alert('Success!', 'Welcome to Sacred Souls Premium!');
+                fetchSubscription();
+              } catch (e: any) {
+                Alert.alert('Error', e.message || 'Failed to upgrade');
+              }
+            },
           },
-        },
-      ]
-    );
+        ]
+      );
+    } finally {
+      setIsUpgrading(false);
+    }
   };
 
   const handleCancel = async () => {

@@ -196,6 +196,87 @@ class ApiService {
       body: JSON.stringify(data),
     });
   }
+
+  // Daily Quote
+  async getDailyQuote() {
+    return this.request('/quotes/daily');
+  }
+
+  // Chat
+  async getChatMessages(circleId: string, limit: number = 50) {
+    return this.request(`/chat/messages/${circleId}?limit=${limit}`);
+  }
+
+  async sendChatMessage(circleId: string, content: string) {
+    return this.request('/chat/messages', {
+      method: 'POST',
+      body: JSON.stringify({ circle_id: circleId, content }),
+    });
+  }
+
+  // Gatherings
+  async getGatherings(circleId?: string, gatheringType?: string) {
+    let query = '';
+    if (circleId || gatheringType) {
+      const params = new URLSearchParams();
+      if (circleId) params.append('circle_id', circleId);
+      if (gatheringType) params.append('gathering_type', gatheringType);
+      query = `?${params.toString()}`;
+    }
+    return this.request(`/gatherings${query}`);
+  }
+
+  async createGathering(data: {
+    circle_id: string;
+    title: string;
+    description: string;
+    gathering_type: 'in_person' | 'virtual';
+    location?: string;
+    virtual_link?: string;
+    date: string;
+  }) {
+    return this.request('/gatherings', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async attendGathering(gatheringId: string) {
+    return this.request(`/gatherings/${gatheringId}/attend`, { method: 'POST' });
+  }
+
+  // Payments
+  async createCheckoutSession(originUrl: string) {
+    return this.request('/payments/checkout', {
+      method: 'POST',
+      body: JSON.stringify({ origin_url: originUrl }),
+    });
+  }
+
+  async getPaymentStatus(sessionId: string) {
+    return this.request(`/payments/status/${sessionId}`);
+  }
+
+  // Notifications
+  async scheduleNotification(data: {
+    title: string;
+    body: string;
+    scheduled_time: string;
+    repeat?: string;
+  }) {
+    return this.request('/notifications/schedule', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getScheduledNotifications() {
+    return this.request('/notifications/scheduled');
+  }
+
+  async cancelNotification(notificationId: string) {
+    return this.request(`/notifications/${notificationId}`, { method: 'DELETE' });
+  }
 }
 
 export const api = new ApiService();

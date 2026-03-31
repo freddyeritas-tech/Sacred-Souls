@@ -18,6 +18,7 @@ import { api } from '../../src/services/api';
 import { useAuthStore } from '../../src/store/authStore';
 import { PostCard } from '../../src/components/PostCard';
 import { AdBanner } from '../../src/components/AdBanner';
+import { DailyQuote } from '../../src/components/DailyQuote';
 import { COLORS } from '../../src/constants/theme';
 
 export default function FeedScreen() {
@@ -99,6 +100,13 @@ export default function FeedScreen() {
     );
   };
 
+  const ListHeaderComponent = () => (
+    <>
+      {/* Daily Quote for all users (free feature) */}
+      <DailyQuote />
+    </>
+  );
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
@@ -140,6 +148,7 @@ export default function FeedScreen() {
           data={posts}
           renderItem={renderItem}
           keyExtractor={(item) => item.post_id}
+          ListHeaderComponent={ListHeaderComponent}
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}

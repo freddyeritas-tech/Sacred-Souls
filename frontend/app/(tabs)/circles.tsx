@@ -73,7 +73,7 @@ export default function CirclesScreen() {
   };
 
   const handleCirclePress = (circleId: string) => {
-    router.push(`/circle/${circleId}`);
+    router.push(`/circle/${circleId}` as any);
   };
 
   return (

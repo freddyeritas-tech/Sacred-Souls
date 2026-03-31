@@ -28,13 +28,14 @@ export default function WelcomeScreen() {
     <View style={styles.container}>
       <View style={styles.content}>
         <View style={styles.logoContainer}>
-          <View style={styles.logoCircle}>
-            <Ionicons name="flower" size={60} color={COLORS.primary} />
-          </View>
+          <Image 
+            source={{ uri: 'https://images.pexels.com/photos/7181865/pexels-photo-7181865.jpeg?auto=compress&cs=tinysrgb&w=300' }}
+            style={styles.logoImage}
+          />
         </View>
         
         <Text style={styles.title}>Sacred Souls</Text>
-        <Text style={styles.subtitle}>Connect with your spiritual tribe</Text>
+        <Text style={styles.subtitle}>Conscious Social Network</Text>
         
         <View style={styles.features}>
           <View style={styles.featureRow}>
@@ -42,12 +43,16 @@ export default function WelcomeScreen() {
             <Text style={styles.featureText}>Join spiritual circles</Text>
           </View>
           <View style={styles.featureRow}>
-            <Ionicons name="leaf" size={24} color={COLORS.nature} />
-            <Text style={styles.featureText}>Nature meetups & events</Text>
+            <Ionicons name="videocam" size={24} color={COLORS.accent} />
+            <Text style={styles.featureText}>Virtual & nature gatherings</Text>
           </View>
           <View style={styles.featureRow}>
-            <Ionicons name="heart" size={24} color={COLORS.accent} />
-            <Text style={styles.featureText}>Share your journey</Text>
+            <Ionicons name="leaf" size={24} color={COLORS.nature} />
+            <Text style={styles.featureText}>Connect with conscious souls</Text>
+          </View>
+          <View style={styles.featureRow}>
+            <Ionicons name="sunny" size={24} color={COLORS.premium} />
+            <Text style={styles.featureText}>Daily spiritual inspiration</Text>
           </View>
         </View>
       </View>
@@ -67,6 +72,8 @@ export default function WelcomeScreen() {
           <Text style={styles.secondaryButtonText}>I already have an account</Text>
         </TouchableOpacity>
       </View>
+      
+      <Text style={styles.tagline}>Connect. Grow. Awaken.</Text>
     </View>
   );
 }
@@ -84,31 +91,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logoContainer: {
-    marginBottom: 32,
+    marginBottom: 24,
   },
-  logoCircle: {
+  logoImage: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: COLORS.backgroundLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: COLORS.primary,
   },
   title: {
     fontSize: 36,
     fontWeight: '700',
     color: COLORS.text,
-    marginBottom: 8,
+    marginBottom: 4,
   },
   subtitle: {
-    fontSize: 18,
-    color: COLORS.textSecondary,
+    fontSize: 16,
+    color: COLORS.primaryLight,
     marginBottom: 48,
+    fontWeight: '500',
+    letterSpacing: 1,
   },
   features: {
-    gap: 20,
+    gap: 18,
   },
   featureRow: {
     flexDirection: 'row',
@@ -121,7 +127,7 @@ const styles = StyleSheet.create({
   },
   buttons: {
     gap: 12,
-    paddingBottom: 24,
+    paddingBottom: 16,
   },
   primaryButton: {
     backgroundColor: COLORS.primary,
@@ -141,5 +147,11 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     color: COLORS.textSecondary,
     fontSize: 16,
+  },
+  tagline: {
+    textAlign: 'center',
+    color: COLORS.textMuted,
+    fontSize: 14,
+    fontStyle: 'italic',
   },
 });

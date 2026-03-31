@@ -35,7 +35,7 @@ export default function WelcomeScreen() {
         </View>
         
         <Text style={styles.title}>Sacred Souls</Text>
-        <Text style={styles.subtitle}>Conscious Social Network</Text>
+        <Text style={styles.subtitle}>Connect to Your Spiritual Tribe</Text>
         
         <View style={styles.features}>
           <View style={styles.featureRow}>
